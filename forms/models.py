@@ -1,5 +1,5 @@
 import dataclasses
-from typing import Optional, List
+from typing import Optional, List, cast
 import discord
 
 
@@ -20,27 +20,39 @@ class Question:
         self.timeout = max(self.timeout, 300) if self.timeout is not None else None
 
     def to_config(self):
-        return {
-            "prompt": self.prompt,
-            "min_response": self.min_response,
-            "max_response": self.max_response,
-            "timeout": self.timeout,
-        }
+        return dataclasses.asdict(self)
 
     @classmethod
     def from_config(cls, data: dict):
         return cls(**data)
 
 
+# pylint: disable=E1101
 @dataclasses.dataclass
 class Form:
     bot: dataclasses.InitVar[discord.Client]
-    output: discord.TextChannel
-    questions: List[Question] = dataclasses.field(default_factory=list)
+    output: discord.TextChannel = None
+    output_id: dataclasses.InitVar[int] = 0
+    questions: List[Question] = dataclasses.field(default_factory=list, init=False)
     _bot_ref: discord.Client = dataclasses.field(init=False, repr=False)
 
-    def __post_init__(self, bot):
+    def __post_init__(self, bot, output_id):
         self._bot_ref = bot
+        if output_id:
+            self.output = bot.get_channel(output_id)
 
     async def interactive_for(self, user: discord.User):
         raise NotImplementedError
+
+    def to_config(self):
+        return {
+            "output_id": self.output.id if self.output else None,
+            "questions": [q.to_config() for q in self.questions]
+        }
+
+    @classmethod
+    def from_config(cls, bot: discord.Client, data: dict):
+        questions = data.pop("questions", [])
+        x = cls(bot=bot, **data)
+        for question in questions:
+            x.questions.append(Question.from_config(question))
