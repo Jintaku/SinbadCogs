@@ -8,10 +8,10 @@ _T = Translator("This is pointless", __file__)
 _ = lambda s: s
 # Strings go here
 
+_ = _T  # Strings below no longer guarded.
 
-# ## Strings below no longer guarded.
 
-
+@cog_i18n(_)
 class Forms(commands.Cog):
     """
     WIP
@@ -19,6 +19,6 @@ class Forms(commands.Cog):
 
     def __init__(self, bot):
         self.bot = bot
-        self.config = Config.get_conf(self, identifier=78631113035100160, force_registration=True)
-
-    
+        self.config = Config.get_conf(
+            self, identifier=78631113035100160, force_registration=True
+        )
